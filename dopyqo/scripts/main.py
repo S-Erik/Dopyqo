@@ -456,6 +456,7 @@ def run(
                 if wfc_obj.ewald != 0.0 and config.qe_ewald:
                     logging.info("Using Ewald energy from QE (%s)...", wfc_obj.ewald)
                     overlap = np.einsum("ij, kj -> ik", c_ip_active.conj(), c_ip_active)
+                    energy_ewald = wfc_obj.ewald
                     h_pq_ewald = overlap * wfc_obj.ewald
                 else:
                     logging.info("Calculate nuclear repulsion...")
