@@ -333,28 +333,24 @@ class Wfc:
 
         if self.n_kpoints == 1:
             self.occupations = np.array([float(x) for x in ks_energies_entry["occupations"]["#text"].split()])
+            self.occupations_xml = self.occupations.copy()
+
+            # Negative occupations are non-physical and are filtered out
+            # but keeping the sum of occupations invariant by adding the sum
+            # of negative occupations to the largest occupation
+            # This hopefully does not change the physics
+            sum_of_neg = np.sum(self.occupations[self.occupations < 0.0])
+            self.occupations[self.occupations < 0.0] = 0.0
+            self.occupations[np.argmax(self.occupations)] += sum_of_neg
+
+            # Same for occupations greater than 1
+            sum_of_gt1 = np.sum(self.occupations[self.occupations > 1.0] - 1.0)
+            self.occupations[self.occupations > 1.0] = 1.0
+            self.occupations[np.argmin(self.occupations)] += sum_of_gt1
         else:
             self.occupations = [np.array([float(x) for x in y["occupations"]["#text"].split()]) for y in ks_energies_entry][self.kpoint_idx]
-        self.occupations_xml = self.occupations.copy()
+            self.occupations_xml = self.occupations.copy()
 
-        # Negative occupations are non-physical and are filtered out
-        # but keeping the sum of occupations invariant by adding the sum
-        # of negative occupations to the largest occupation
-        # This hopefully does not change the physics
-        sum_of_neg = np.sum(self.occupations[self.occupations < 0.0])
-        self.occupations[self.occupations < 0.0] = 0.0
-        self.occupations[np.argmax(self.occupations)] += sum_of_neg
-
-        # Same for occupations greater than 1
-        sum_of_gt1 = np.sum(self.occupations[self.occupations > 1.0] - 1.0)
-        self.occupations[self.occupations > 1.0] = 1.0
-        self.occupations[np.argmin(self.occupations)] += sum_of_gt1
-
-        # Assert the previous
-        assert not any(n < 0 for n in self.occupations), f"The occupations cannot be smaller than 0 but are {self.occupations}."
-        assert not any(n > 1 for n in self.occupations), f"The occupations cannot be greater than 1 but are {self.occupations}."
-
-        if self.n_kpoints > 1:
             # For k-point calculations the occupations are define wrt to the Fermi energy. This can result in the fact that
             # two times the sum of occupations does not match the number of electrons.
             # For k-point calculations we set to occupations to binary occupations with the correct sum.
@@ -369,6 +365,10 @@ class Wfc:
                 ),
                 dtype=np.int64,
             )
+
+        # Assert the previous
+        assert not any(n < 0 for n in self.occupations), f"The occupations cannot be smaller than 0 but are {self.occupations}."
+        assert not any(n > 1 for n in self.occupations), f"The occupations cannot be greater than 1 but are {self.occupations}."
 
         assert np.isclose(self.nelec, occ_sum := np.sum(self.occupations) * 2), (
             f"Two times the occupations ({self.occupations}) do not sum up (sum={occ_sum}) "
