@@ -4,11 +4,15 @@ from qiskit.quantum_info import Statevector
 import subprocess as sp
 import shutil
 import pandas as pd
+from dopyqo.colors import *
 
 # Author: Alexander Rehn
 
 
 def orb_occupation(state_vector: Statevector):
+    print(
+        f"{ORANGE}Warning: Are you sure to use the orb_occupation function? If you want to calculate densities with this, you have to calculate 1-RDM. See examples/bader_charges.py for guidance.{RESET_COLOR}"
+    )
     orb_occ_prob_list = []
     num_qubits = state_vector.num_qubits
     n_orb = num_qubits // 2
@@ -196,6 +200,9 @@ def get_density_cube(sq_psi, occupation):
 
 
 def make_full_occ_from_partial_occ(spatial_occ: np.ndarray, active_orbitals: int, active_electrons: int, total_electrons: int, nbands: int):
+    print(
+        f"{ORANGE}Warning: Are you sure to use the make_full_occ_from_partial_occ function? If you want to calculate densities with this, you have to calculate 1-RDM. See examples/bader_charges.py for guidance.{RESET_COLOR}"
+    )
 
     passive_electrons = total_electrons - active_electrons
     passive_filled_orbitals = int(passive_electrons / 2)

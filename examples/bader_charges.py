@@ -18,8 +18,8 @@ if __name__ == "__main__":
 
     base_folder = os.path.join("qe_files", "Mg2Si")
     prefix = "Mg2Si"
-    active_electrons = 8
-    active_orbitals = 9
+    active_electrons = 6
+    active_orbitals = 5
     path_to_bader_executable = {"bader": os.path.join(os.path.expanduser("~"), "bader/bader")}
     config = dopyqo.DopyqoConfig(
         base_folder=base_folder,
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         active_electrons=active_electrons,
         active_orbitals=active_orbitals,
         run_fci=True,
-        run_vqe=False,
+        run_vqe=True,
         vqe_optimizer=dopyqo.VQEOptimizers.L_BFGS_B,
         n_threads=10,
         uccsd_reps=1,
@@ -134,50 +134,100 @@ if __name__ == "__main__":
     QE_cube_scale = QE_cube * QE_vol
 
     statevecs_data = np.load(npz_path)
-    merged = pd.DataFrame()
+    merged = pd.DataFrame(
+        {
+            "ELEMENT": atoms,
+            "Bader charge QE": qe_bader["EFFECTIVE CHARGE"].values,
+            "Bader charge Dopyqo": ks_bader["EFFECTIVE CHARGE"].values,
+        }
+    )
     if statevecs_data["fci_state_data"].shape != (0,):
-        fci_state_loaded = Statevector(statevecs_data["fci_state_data"])
-        fci_AS_occupation = cube.orb_occupation(fci_state_loaded)
-        fci_total_occupation = cube.make_full_occ_from_partial_occ(fci_AS_occupation, active_orbitals, active_electrons, ks_total_electrons, nbands)
-        save_dir = os.path.join(base_folder, f"Bader_dopyqo_casci_{active_electrons}e_{active_orbitals}o")
-        print(f"Occupation of AS of {prefix}: {fci_AS_occupation}")
-        print(f"Occupation of CASCI of {prefix} : {fci_total_occupation}")
-        print(f"Occupation KS of {prefix}: {wfc1_ncpp.occupations_xml}")
-        fci_tot_density = cube.get_density_cube(ks_single_density, fci_total_occupation)
+        fci_rdm1 = h_ks.fci_solver.make_rdm1(h_ks.fci_evcs[0], h_ks.norb, (h_ks.nelec, h_ks.nelec))
+        passive_electrons = ks_total_electrons - active_electrons
+        passive_filled_orbitals = round(passive_electrons / 2)
+        empty_orbitals = nbands - passive_filled_orbitals - active_orbitals
+        fci_rdm1_total = np.zeros((nbands, nbands))
+        for i in range(passive_filled_orbitals):
+            fci_rdm1_total[i, i] = 1.0
+        fci_rdm1_total[
+            passive_filled_orbitals : passive_filled_orbitals + h_ks.norb, passive_filled_orbitals : passive_filled_orbitals + h_ks.norb
+        ] = (fci_rdm1 / 2.0)
+        fci_tot_density = np.zeros(max_min, dtype=c_ip.dtype)
+        for i in range(nbands):
+            for j in range(nbands):
+                # ρ(r) = \sum_ij γ_ij ϕ∗_p(r) ϕ_q(r)
+                fci_tot_density += fci_rdm1_total[i, j] * psi_r[i].conj() * psi_r[j]
         fci_tot_density = fci_tot_density / (wfc1_ncpp.cell_volume / np.prod(wfc1_ncpp.fft_grid) / 2.0)
+        assert np.allclose(
+            fci_tot_density, fci_tot_density.real
+        ), f"FCI total density is not real. This should never happen. Please contact a developer!"
+        fci_tot_density = fci_tot_density.real
+
         cube.make_cube(base_folder, prefix, fci_tot_density, save_dir, path_to_bader_executable, max_min)
         fci_ACF_file = os.path.join(save_dir, "ACF.dat")
         fci_bader = cube.extract_charge(atoms, fci_ACF_file, valence)
 
-        merged = pd.DataFrame(
-            {
-                "ELEMENT": atoms,
-                "Bader charge QE": qe_bader["EFFECTIVE CHARGE"].values,
-                "Bader charge Dopyqo": ks_bader["EFFECTIVE CHARGE"].values,
-                "Bader charge Dopyqo CASCI": fci_bader["EFFECTIVE CHARGE"].values,
-            }
+        merged = pd.concat(
+            [
+                merged,
+                pd.DataFrame(
+                    {
+                        "Bader charge Dopyqo CASCI": fci_bader["EFFECTIVE CHARGE"].values,
+                    }
+                ),
+            ],
+            axis=1,
         )
     if statevecs_data["vqe_state_data"].shape != (0,):
-        vqe_state_loaded = Statevector(statevecs_data["vqe_state_data"])
-        vqe_AS_occupation = cube.orb_occupation(vqe_state_loaded)
-        vqe_total_occupation = cube.make_full_occ_from_partial_occ(vqe_AS_occupation, active_orbitals, active_electrons, ks_total_electrons, nbands)
-        save_dir = os.path.join(base_folder, f"Bader_dopyqo_vqe/s_{active_electrons}e_{active_orbitals}o_")
-        print(f"Occupation of AS of {prefix}: {vqe_AS_occupation}")
-        print(f"Occupation of VQE of {prefix} : {vqe_total_occupation}")
-        print(f"Occupation KS of {prefix}: {wfc1_ncpp.occupations_xml}")
-        vqe_tot_density = cube.get_density_cube(ks_single_density, vqe_total_occupation)
+        if h_ks.tcc_vqe_result is None and vqe_params is None:
+            raise ValueError("No TenCirChem VQE optimization has been performed and no parameters are given. Cannot calculate VQE bader charges!")
+        ci_vec = h_ks.tcc_ansatz.civector(h_ks.tcc_vqe_params)
+        dim_spin = np.sqrt(ci_vec.size)
+        if not np.isclose(int(dim_spin), dim_spin):
+            print(
+                f"{RED}Statevector error: Size of TenCirChem statevector ({ci_vec.size}) is not n^2 (n={dim_spin}) where n should be a squared integer. This should not happen. Please, contact a developer!{RESET_COLOR}"
+            )
+            import sys
+
+            sys.exit(1)
+        dim_spin = int(dim_spin)
+        new_shape = (dim_spin,) * 2
+        ci_vec.reshape(new_shape)
+        vqe_rdm1 = h_ks.fci_solver.make_rdm1(ci_vec.reshape(new_shape), h_ks.norb, (h_ks.nelec, h_ks.nelec))
+        passive_electrons = ks_total_electrons - active_electrons
+        passive_filled_orbitals = round(passive_electrons / 2)
+        empty_orbitals = nbands - passive_filled_orbitals - active_orbitals
+        vqe_rdm1_total = np.zeros((nbands, nbands))
+        for i in range(passive_filled_orbitals):
+            vqe_rdm1_total[i, i] = 1.0
+        vqe_rdm1_total[
+            passive_filled_orbitals : passive_filled_orbitals + h_ks.norb, passive_filled_orbitals : passive_filled_orbitals + h_ks.norb
+        ] = (vqe_rdm1 / 2.0)
+        vqe_tot_density = np.zeros(max_min, dtype=c_ip.dtype)
+        for i in range(nbands):
+            for j in range(nbands):
+                # ρ(r) = \sum_ij γ_ij ϕ∗_p(r) ϕ_q(r)
+                vqe_tot_density += vqe_rdm1_total[i, j] * psi_r[i].conj() * psi_r[j]
         vqe_tot_density = vqe_tot_density / (wfc1_ncpp.cell_volume / np.prod(wfc1_ncpp.fft_grid) / 2.0)
+        assert np.allclose(
+            vqe_tot_density, vqe_tot_density.real
+        ), f"VQE total density is not real. This should never happen. Please contact a developer!"
+        vqe_tot_density = vqe_tot_density.real
+
         cube.make_cube(base_folder, prefix, vqe_tot_density, save_dir, path_to_bader_executable, max_min)
         vqe_ACF_file = os.path.join(save_dir, "ACF.dat")
         vqe_bader = cube.extract_charge(atoms, vqe_ACF_file, valence)
 
-        merged = pd.DataFrame(
-            {
-                "ELEMENT": atoms,
-                "Bader charge QE": qe_bader["EFFECTIVE CHARGE"].values,
-                "Bader charge Dopyqo": ks_bader["EFFECTIVE CHARGE"].values,
-                "Bader charge Dopyqo VQE": vqe_bader["EFFECTIVE CHARGE"].values,
-            }
+        merged = pd.concat(
+            [
+                merged,
+                pd.DataFrame(
+                    {
+                        "Bader charge Dopyqo VQE": vqe_bader["EFFECTIVE CHARGE"].values,
+                    }
+                ),
+            ],
+            axis=1,
         )
 
     print(f"{GREEN}Bader charge results:{RESET_COLOR}")
