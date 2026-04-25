@@ -8,12 +8,12 @@ import dopyqo
 
 @dataclass
 class BetaProjector:
-    r"""Projector r \beta^i(r) (note the factor r)
+    r"""Projector :math:`r \beta^i(r)` (note the factor :math:`r`)
 
     Args:
         idx (int): index i of projector starting at 1. Written as PP_BETA.idx in PP file
         angular_momentum (int): Angular momentum value of projector
-        values (np.ndarray): Values of r \beta^i(r) for different values of r (note the factor r)
+        values (np.ndarray): Values of :math:`r \beta^i(r)` for different values of :math:`r` (note the factor :math:`r`)
     """
 
     idx: int
@@ -27,7 +27,7 @@ class rGrid:
 
     Args:
         r (np.ndarray): radial grid points
-        rab (np.ndarray): factor required for discrete integration: \int f(r) dr = \sum_i f_i rab_i.
+        rab (np.ndarray): factor required for discrete integration: :math:`\int f(r)\,dr = \sum_i f_i\,\text{rab}_i`.
     """
 
     def __init__(self, r: np.ndarray, rab: np.ndarray):

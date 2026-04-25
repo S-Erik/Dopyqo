@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import os
 import logging
@@ -1361,7 +1363,7 @@ def wigner_seitz_in_radius(facets) -> float:
 
 
 def is_point_inside_parallelepiped(point: np.ndarray, v1: np.ndarray, v2: np.ndarray, v3: np.ndarray, tol=1e-8) -> tuple[bool, np.ndarray]:
-    """Check if point is in a parallelepiped spanned by three vectors
+    r"""Check if point is in a parallelepiped spanned by three vectors
 
     Args:
         point (np.ndarray): Point
@@ -1370,7 +1372,8 @@ def is_point_inside_parallelepiped(point: np.ndarray, v1: np.ndarray, v2: np.nda
         v3 (np.ndarray): Third spanning vector
 
     Returns:
-        tuple[bool, np.ndarray]: Tuple of: Is point in parallelepiped? [\alpha, \beta a2, \gamma] of point = \alpha v1 + \beta v2 + \gamma v3
+        tuple[bool, np.ndarray]: Tuple of (is point in parallelepiped?, :math:`[\alpha, \beta, \gamma]`)
+        where :math:`\text{point} = \alpha\, v_1 + \beta\, v_2 + \gamma\, v_3`.
     """
     M = np.vstack([v1, v2, v3]).T
     lambdas = np.linalg.solve(M, point)

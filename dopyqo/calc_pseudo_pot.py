@@ -19,15 +19,18 @@ from dopyqo.colors import *
 def sph_harm_real(m, n, theta, phi):
     r"""Compute real spherical harmonics.
     The real spherical harmonics are defined as
-    $$
-    Y_{nm}(\theta, \phi) =
-    \begin{cases}
-    \sqrt2 (-1)^m \Im{Y_n^{|m|}}&\text{if } m<0\\
-    Y_n^0 &\text{if } m=0\\
-    \sqrt2 (-1)^m \Re{Y_n^m}&\text{if } m>0
-    \end{cases}
-    $$
-    where $Y_n^m(\theta, \phi)$ are the complex spherical harmonics; see [scipy.special.sph_harm](https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html).
+
+    .. math::
+
+        Y_{nm}(\theta, \phi) =
+        \begin{cases}
+        \sqrt{2} (-1)^m \Im\{Y_n^{\lvert m \rvert}\} & \text{if } m<0\\
+        Y_n^0 & \text{if } m=0\\
+        \sqrt{2} (-1)^m \Re\{Y_n^m\} & \text{if } m>0
+        \end{cases}
+
+    where :math:`Y_n^m(\theta, \phi)` are the complex spherical harmonics; see
+    `scipy.special.sph_harm <https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html>`_.
 
     Args:
     m: array_like
@@ -53,7 +56,7 @@ def sph_harm_real(m, n, theta, phi):
 
 
 def cart_to_sph(xyz: np.ndarray) -> np.ndarray:
-    r"""Transforms cartesian x,y,z coordinates to spherical r, \theta (polar angle), \phi (azimuthal angle) coordinates
+    r"""Transforms cartesian x,y,z coordinates to spherical :math:`r`, :math:`\theta` (polar angle), :math:`\phi` (azimuthal angle) coordinates
 
     Args:
         xyz (np.ndarray): Array of cartesian coordinates. Shape (N, 3)
@@ -85,24 +88,43 @@ def v_loc_pw(
     atom_positions: np.ndarray,
     pseudopot: Pseudopot,
 ) -> np.ndarray:
-    r"""Calculates the matrix of the local pseudopotential V_loc(p, p') in the plane wave basis in Hartree atomic units
+    r"""Calculates the matrix of the local pseudopotential :math:`V_\text{loc}(p, p')` in the plane wave basis in Hartree atomic units
 
-    V_loc(p, p') = 4\pi/V \int_0^\infty dr r (V_loc(r)+Z erf(r)/r) sin((p-p')r)/(p-p') - 4\pi/V Z e^{-(p-p')^2/4}/(p-p')^2
-    which is the Fourier transform of V_loc(r) + Z erf(r)/r - Z erf(r)/r
+    .. math::
 
-    A term -Z erf(r)/r is subtracted (-[-Z erf(r)/r]=+Z erf(r)/r) in real space (thus making the function short-ranged)
-    and added again in G space
-    V_loc^short(p, p') = 4\pi/V \int_0^\infty dr r (V_loc(r)+Z erf(r)/r) sin((p-p')r)/(p-p')
-    which is continious for p-p'=0 but the p-p'=0 term is calculated differently (see below)
+        V_\text{loc}(p, p') = \frac{4\pi}{V} \int_0^\infty dr\, r
+        \left(V_\text{loc}(r) + \frac{Z \operatorname{erf}(r)}{r}\right)
+        \frac{\sin((p-p')r)}{p-p'}
+        - \frac{4\pi}{V} \frac{Z e^{-(p-p')^2/4}}{(p-p')^2}
 
-    The Fourier transform of Z erf(r)/r is
-    4\pi/V Z e^{-(p-p')^2/4}/(p-p')^2
+    which is the Fourier transform of :math:`V_\text{loc}(r) + Z\operatorname{erf}(r)/r - Z\operatorname{erf}(r)/r`.
 
-    The p-p'=0 limit for V_loc is the p-p'=0 limit of
-    4\pi/V \int_0^\infty dr r^2 (V_loc(r)+Z/r)
-    since the p-p'=0 limit for the -Z/r part of V_loc is cancelled by the electronic background
-    Because V_loc does not behave exactly like -Z/r, we still have to calculate the p-p'=0 limit
-    for V_loc+Z/r
+    A term :math:`-Z\operatorname{erf}(r)/r` is subtracted in real space (thus making the function short-ranged)
+    and added again in G space:
+
+    .. math::
+
+        V_\text{loc}^\text{short}(p, p') = \frac{4\pi}{V} \int_0^\infty dr\, r
+        \left(V_\text{loc}(r) + \frac{Z \operatorname{erf}(r)}{r}\right)
+        \frac{\sin((p-p')r)}{p-p'}
+
+    which is continuous for :math:`p-p'=0` but the :math:`p-p'=0` term is calculated differently (see below).
+
+    The Fourier transform of :math:`Z\operatorname{erf}(r)/r` is
+
+    .. math::
+
+        \frac{4\pi}{V} \frac{Z e^{-(p-p')^2/4}}{(p-p')^2}
+
+    The :math:`p-p'=0` limit for :math:`V_\text{loc}` is the :math:`p-p'=0` limit of
+
+    .. math::
+
+        \frac{4\pi}{V} \int_0^\infty dr\, r^2 \left(V_\text{loc}(r) + \frac{Z}{r}\right)
+
+    since the :math:`p-p'=0` limit for the :math:`-Z/r` part of :math:`V_\text{loc}` is cancelled by the electronic background.
+    Because :math:`V_\text{loc}` does not behave exactly like :math:`-Z/r`, we still have to calculate the :math:`p-p'=0` limit
+    for :math:`V_\text{loc}+Z/r`.
 
     As a reference see the implementation in Quantum ESPRESSO in its soruce q-e/upflib/vloc_mod.f90
 
@@ -114,8 +136,7 @@ def v_loc_pw(
         pseudopot (Pseudopot): Pseudopotential object containing z_valence, V_loc(r), and the radial grid
 
     Returns:
-        np.ndarray:  V_loc(p, p')
-                     where p, p' take all values from input array p
+        np.ndarray: :math:`V_\text{loc}(p, p')` where :math:`p, p'` take all values from input array ``p``.
     """
     # /0.5 to convert from Hartree to Rydberg since the PP is given in Rydberg atomic units
     z_valence = pseudopot.z_valence / 0.5
@@ -185,10 +206,13 @@ def v_loc(
     pseudopot: Pseudopot,
     save_filename_pw: str | None = None,
 ) -> np.ndarray:
-    r"""Calculates the matrix of the local pseudopotential V_loc(i, i) in the Kohn-Sham basis
-    V_loc(i, j) = \sum_{p, p'} c_{ip} V_loc(p, p') c_{jp'}
+    r"""Calculates the matrix of the local pseudopotential :math:`V_\text{loc}(i, i)` in the Kohn-Sham basis
 
-    See v_loc_pw for the calculation of V_loc(p, p')
+    .. math::
+
+        V_\text{loc}(i, j) = \sum_{p, p'} c_{ip} V_\text{loc}(p, p') c_{jp'}
+
+    See :func:`v_loc_pw` for the calculation of :math:`V_\text{loc}(p, p')`.
 
     Args:
         p (np.ndarray): reciprocal space vectors. Shape (#waves, 3)
@@ -199,9 +223,9 @@ def v_loc(
         pseudopot (Pseudopot): Pseudopotential object containing z_valence, V_loc(r), and the radial grid
 
     Returns:
-        np.ndarray:  V_loc(i, j') = \sum_{p,p'} c_{p,i}^* c_{p',j} V_loc(p, p')
-                     where p, p' take all values from input array p
-                     where i, i' represent Kohn-Sham band indices
+        np.ndarray: :math:`V_\text{loc}(i, j') = \sum_{p,p'} c_{p,i}^* c_{p',j} V_\text{loc}(p, p')`
+                    where :math:`p, p'` take all values from input array ``p``
+                    and :math:`i, i'` represent Kohn-Sham band indices.
     """
     v_loc_pw_mat = v_loc_pw(p, cell_volume, atom_positions, pseudopot)
     if save_filename_pw is not None:
@@ -216,11 +240,21 @@ def v_nl_pw(
     pseudopot: Pseudopot,
 ) -> np.ndarray:
     r"""Calculates the matrix of the non-local pseudopotential in the plane wave basis in Hartree atomic units
-    V_nl(p, p') = (4\pi)^2/V \sum_I e^(-i (p-p') . R_I) \sum_{lm} \sum_{ij} Y_{lm}(p) Y*_{lm}(p') F^i_l(p) D_{ij} F^j_l(p')
-                = (4\pi)^2/V \sum_I e^(-i (p-p') . R_I) \sum_{ij} D_{ij} \sum_l [\sum_m Y_{lm}(p) Y*_{lm}(p')] F^i_l(p) F^j_l(p')
+
+    .. math::
+
+        V_\text{nl}(p, p') &= \frac{(4\pi)^2}{V} \sum_I e^{-i (p-p') \cdot R_I}
+            \sum_{lm} \sum_{ij} Y_{lm}(p)\, Y^*_{lm}(p')\, F^i_l(p)\, D_{ij}\, F^j_l(p') \\
+            &= \frac{(4\pi)^2}{V} \sum_I e^{-i (p-p') \cdot R_I}
+            \sum_{ij} D_{ij} \sum_l \left[\sum_m Y_{lm}(p)\, Y^*_{lm}(p')\right] F^i_l(p)\, F^j_l(p')
+
     where
-    F^i_l(p) = \int dr r^2 \beta^i_l(r) j_l(pr)
-    where j_l(x) is the spherical Bessel function
+
+    .. math::
+
+        F^i_l(p) = \int dr\, r^2\, \beta^i_l(r)\, j_l(pr)
+
+    and :math:`j_l(x)` is the spherical Bessel function.
 
     As a reference see https://docs.abinit.org/theory/pseudopotentials/
 
@@ -229,11 +263,10 @@ def v_nl_pw(
         cell_volume (float): Volume V of the real-space unit cell
         atom_positions (np.ndarray): Array of the coordinates R_I of every atom described
                                      by the pseudopotential. Shape (#atoms, 3)
-        pseudopot (Pseudopot): Pseudopotential object containing D_ij, \beta^i_l(r), and the radial grid
+        pseudopot (Pseudopot): Pseudopotential object containing :math:`D_{ij}`, :math:`\beta^i_l(r)`, and the radial grid
 
     Returns:
-        np.ndarray: V_nl(p, p')
-                    where p, p' take all values from input array p and
+        np.ndarray: :math:`V_\text{nl}(p, p')` where :math:`p, p'` take all values from input array ``p``.
     """
     d_ij = pseudopot.pp_dij
     beta_projectors = pseudopot.pp_betas
@@ -362,9 +395,12 @@ def v_nl(
     save_filename_pw: str | None = None,
 ) -> np.ndarray:
     r"""Calculates the matrix of the non-local pseudopotential in the Kohn-Sham basis in Hartree atomic units
-    V_nl(i,j) = \sum_{p, p'} c_{ip} V_nl(p, p') c_{jp'}
 
-    See v_nl_pw for the calculation of V_nl(p, p')
+    .. math::
+
+        V_\text{nl}(i,j) = \sum_{p, p'} c_{ip}\, V_\text{nl}(p, p')\, c_{jp'}
+
+    See :func:`v_nl_pw` for the calculation of :math:`V_\text{nl}(p, p')`.
 
     Args:
         p (np.ndarray): reciprocal space vectors. Shape (#waves, 3)
@@ -372,12 +408,12 @@ def v_nl(
         cell_volume (float): Volume V of the real-space unit cell
         atom_positions (np.ndarray): Array of the coordinates R_I of every atom described
                                      by the pseudopotential. Shape (#atoms, 3)
-        pseudopot (Pseudopot): Pseudopotential object containing D_ij, \beta^i_l(r), and the radial grid
+        pseudopot (Pseudopot): Pseudopotential object containing :math:`D_{ij}`, :math:`\beta^i_l(r)`, and the radial grid
 
     Returns:
-        np.ndarray: V_nl(i, j') = \sum_{p,p'} c_{p,i}^* c_{p',j} V_nl(p, p')
-                    where p, p' take all values from input array p and
-                    where i, i' represent Kohn-Sham band indices
+        np.ndarray: :math:`V_\text{nl}(i, j') = \sum_{p,p'} c_{p,i}^* c_{p',j} V_\text{nl}(p, p')`
+                    where :math:`p, p'` take all values from input array ``p``
+                    and :math:`i, i'` represent Kohn-Sham band indices.
     """
     v_nl_pw_mat = v_nl_pw(p, cell_volume, atom_positions, pseudopot)
     if save_filename_pw is not None:

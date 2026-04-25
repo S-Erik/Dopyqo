@@ -16,10 +16,7 @@ class DopyqoConfig:
     Objects of this class are immutable (frozen instances) and variables of an object cannot be set manually after creation.
     Therefore, copying a object and changing values does not work. For this, use the dataclasses.replace function to create a new
     object from an existing one and simultaneously changing values.
-
-    NOTE: None is the default of optional entries since we parse them as None from a toml-input file
-
-    FIXME: If None is read from input file, just don't pass it into DopyqoConfig and set the defaults to non-None values?!
+    ``None`` is the default of all optional entries, as they are parsed as ``None`` from a TOML input file.
 
     Args:
         base_folder (str): Path to the folder in which the prefix.save folder is. For setting the prefix see argument prefix.
@@ -68,7 +65,7 @@ class DopyqoConfig:
                                                                           - The integers start from zero and denote first all up-spin orbitals then all down-spin orbitals
                                                                           - The first half of the tuple contains the indices for creation operator and the second half is for annilation operator.
                                                                           - Hermitian conjugation is handled internally.
-                                                                           For example, (6, 2, 0, 4) corresponds to a†_6 a†_2 a_0 a_4 - a†_4 a†_0 a_2 a_6
+                                                                          - For example, ``(6, 2, 0, 4)`` corresponds to :math:`a^\dagger_6 a^\dagger_2 a_0 a_4 - a^\dagger_4 a^\dagger_0 a_2 a_6`
                                                                           Set to dopyqo.ExcitationPools.SINGLES_DOUBLES if None. Defaults to None.
         uccsd_reps (int | None): Number of repetitions of the UCCSD ansatz used in VQE. Set to 1 if None. Defaults to None.
         qe_ewald (bool | None): If True, the nuclear-repulsion (Ewald) energy is not calculated but read from the xml-file outputted by Quantum ESPRESSO.
@@ -108,6 +105,7 @@ class DopyqoConfig:
     run_hf: bool | None = None  # TODO: Add this to toml-input-file
 
     def __post_init__(self):
+        # FIXME: If None is read from input file, just don't pass it into DopyqoConfig and set the defaults to non-None values?!
         if len(self.base_folder) > 0 and not os.path.isdir(self.base_folder):
             print(f"{RED}Config error: Base folder ({self.base_folder}) does not exist!{RESET_COLOR}", file=sys.stderr)
             sys.exit(1)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import logging
 from warnings import warn
@@ -43,19 +45,31 @@ def transform_index(i, n_orbitals):
 
 
 class Hamiltonian:
-    """Defines a second-quanitzation hamiltonian of the form
+    r"""Defines a second-quantization Hamiltonian of the form
 
-    H = \sum_{pq} h_{pq} a_p^\dagger a_q + 1/2 \sum_{pqrs} h_{pqrs} a_p^\dagger a_q^\dagger a_r a_s + E_{const.}
+    .. math::
 
-    with h_{pqrs} = \int \int \phi^*_p(r_1)  \phi^*_q(r_2) \phi_r(r_2)  \phi_s(r_1) / |r_1-r_2| dr_1 dr_2
+        H = \sum_{pq} h_{pq} a_p^\dagger a_q
+            + \frac{1}{2} \sum_{pqrs} h_{pqrs} a_p^\dagger a_q^\dagger a_r a_s
+            + E_{\text{const.}}
 
-    h_{pq} and h_{pqrs} are defined in terms of N spatial orbitals.
+    with
+
+    .. math::
+
+        h_{pqrs} = \int\!\!\int
+                   \phi^*_p(\mathbf{r}_1)\,\phi^*_q(\mathbf{r}_2)
+                   \frac{1}{\lvert\mathbf{r}_1 - \mathbf{r}_2\rvert}
+                   \phi_r(\mathbf{r}_2)\,\phi_s(\mathbf{r}_1)
+                   \,d\mathbf{r}_1\,d\mathbf{r}_2
+
+    :math:`h_{pq}` and :math:`h_{pqrs}` are defined in terms of N spatial orbitals.
 
     Args:
         h_pq (np.ndarray): One-electron matrix elements. Shape (N, N).
         h_pqrs (np.ndarray): Two-electron matrix elements. Shape (N, N, N, N).
         occupations (np.ndarray): Occupations of the N spatial orbitals taking values either 0 or 1, and summing up to half of the number of electrons. Shape (N,)
-        constants (float | dict[str, float], optional): Energy offset E_{const.} as float or dict of str, float pairs. Defaults to 0.0.
+        constants (float | dict[str, float], optional): Energy offset :math:`E_{\text{const.}}` as float or dict of str, float pairs. Defaults to 0.0.
         reference_energy (float, optional): Reference energy used for VQE calculations. Defaults to 0.0.
     """
 
@@ -190,12 +204,16 @@ class Hamiltonian:
         return qiskit_problem
 
     def hf_energy(self) -> float:
-        """Calculate the mean-field energy of the single Slater determinant given by self.occupations.
+        r"""Calculate the mean-field energy of the single Slater determinant given by self.occupations.
         If this Slater determinant is the Hartree-Fock state, the energy is the Hartree-Fock energy.
 
         The calculated energy is:
-        E = 2 \sum_i h_{ii} + \sum_{ij) (2 h_{ijji} - h_{ijij}) + E_{const.}
-        where the sums go over the occupied orbitals
+
+        .. math::
+
+            E = 2 \sum_i h_{ii} + \sum_{ij} (2 h_{ijji} - h_{ijij}) + E_{\text{const.}}
+
+        where the sums go over the occupied orbitals.
 
         Returns:
             float: The calculated mean-field energy
@@ -219,17 +237,21 @@ class Hamiltonian:
         return (h_pq_energy + h_pqrs_energy + energy_offset).real
 
     def hf_energy_qiskit(self, mapper: FermionicMapper | None = JordanWignerMapper()):
-        """Calculate the mean-field energy of the single Slater determinant given by self.occupations.
+        r"""Calculate the mean-field energy of the single Slater determinant given by self.occupations.
         If this Slater determinant is the Hartree-Fock state, the energy is the Hartree-Fock energy.
 
         The energy is calculated using Qiskit by using its HartreeFock class and statevector simulation.
 
         The calculated energy is:
-        E = 2 \sum_i h_{ii} + \sum_{ij) (2 h_{ijji} - h_{ijij}) + E_{const.}
-        where the sums go over the occupied orbitals
+
+        .. math::
+
+            E = 2 \sum_i h_{ii} + \sum_{ij} (2 h_{ijji} - h_{ijij}) + E_{\text{const.}}
+
+        where the sums go over the occupied orbitals.
 
         Args:
-            mapper (FermionicMapper | None, optional): _description_. Defaults to JordanWignerMapper().
+            mapper (FermionicMapper | None, optional): Fermion-to-qubit mapper. Defaults to JordanWignerMapper().
 
         Returns:
             float: The calculated mean-field energy

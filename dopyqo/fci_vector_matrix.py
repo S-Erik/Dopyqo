@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from qiskit.quantum_info import Statevector
 from pyscf.fci import FCIvector

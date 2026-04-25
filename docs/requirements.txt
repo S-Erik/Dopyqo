@@ -1,0 +1,13 @@
+# Sphinx and theme
+sphinx
+shibuya
+sphinx-design
+
+# Lightweight dopyqo dependencies needed at import time.
+# Heavy deps (pyscf, qiskit, tencirchem, numba, pyvista, h5py, cupy) are
+# mocked in conf.py via autodoc_mock_imports and must NOT be listed here.
+numpy==1.26.4
+scipy==1.15.2
+xmltodict==0.13.0
+matplotlib==3.10.1
+termplotlib==0.3.9

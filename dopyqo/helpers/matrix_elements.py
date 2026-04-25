@@ -15,7 +15,11 @@ class MatrixElements:
     """Effective single-particle potential from the frozen core approximation part of the one-electron matrix elements"""
     h_pqrs: np.ndarray | None = None
     r"""Two-electron matrix elements (electron-electron interaction) defined as
-    h_pqrs = ∫∫ ψ*_p(r_1) ψ*_q(r_2) ψ_r(r_2) ψ_s(r_1) 1/|r_1-r_2| dr_1 dr_2
+
+    .. math::
+
+        h_{pqrs} = \iint \psi^*_p(r_1)\,\psi^*_q(r_2)\,\psi_r(r_2)\,\psi_s(r_1)\,
+            \frac{1}{\lvert r_1 - r_2 \rvert}\,dr_1\,dr_2
     """
     h_pq_ewald: np.ndarray | None = None
     """Nuclear-nuclear interaction energy multiplied with the overlap matrix as one-electron matrix elements"""

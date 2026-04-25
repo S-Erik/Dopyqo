@@ -53,6 +53,7 @@ packages = ["dopyqo", "dopyqo.scripts"]
 rs = ["dopyqo-rs"]
 gpu = ["cupy"]
 all = ["dopyqo-rs", "cupy"]
+docs = ["sphinx", "shibuya", "sphinx-design"]
 
 [project.urls]
 Repository = "https://github.com/dlr-wf/Dopyqo"

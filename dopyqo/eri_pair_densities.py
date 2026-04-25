@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import time
 import logging
@@ -64,24 +66,26 @@ def pair_density(
     c_jp_array: np.ndarray | None = None,
     use_gpu: bool = True,
 ) -> np.ndarray:
-    r"""Calculate pair density in reciprocal space via Fourier transforms
-    Calculates \rho_ij(p)=\psi*_i(p) * \psi_j(p) (* is convolution) which is the
-    Fourier transform of \psi*_i(r) * \psi_j(r) (* is standard multiplication)
+    r"""Calculate pair density in reciprocal space via Fourier transforms.
+    Calculates :math:`\rho_{ij}(p) = \psi^*_i(p) \star \psi_j(p)` (convolution) which is the
+    Fourier transform of :math:`\psi^*_i(r) \cdot \psi_j(r)` (pointwise product).
 
-    The argument c_ip_array is \psi_i(p) for a p-grid in reciprocal space.
-    The inverse Fourier transform of \psi_i(p) (or c_ip_array) is \psi_i(r) in real space.
-    To calculate \psi*_i(r) * \psi_j(r) (* is standard multiplication) we inverse Fourier
-    transform both \psi_i(p) and \psi_j(p) resulting in \psi_i(r) and \psi_j(r)
-    and then perform the standard multiplication \psi*_i(r) * \psi_j(r) (* is standard multiplication).
-    We then perform a Fourier transform of the calculated real space pair density
-    \psi*_i(r) * \psi_j(r) (* is standard multiplication) and return the result.
+    The argument c_ip_array is :math:`\psi_i(p)` for a p-grid in reciprocal space.
+    The inverse Fourier transform of :math:`\psi_i(p)` (or c_ip_array) is :math:`\psi_i(r)` in
+    real space. To calculate :math:`\psi^*_i(r) \cdot \psi_j(r)` we inverse Fourier transform both
+    :math:`\psi_i(p)` and :math:`\psi_j(p)` resulting in :math:`\psi_i(r)` and :math:`\psi_j(r)`,
+    and then perform the pointwise multiplication :math:`\psi^*_i(r) \cdot \psi_j(r)`.
+    We then Fourier transform the result and return it.
 
     Args:
-        c_ip_array (np.ndarray): Array of coefficients describing the Kohn-Sham orbitals \psi_i(p) in the plane wave basis,
+        c_ip_array (np.ndarray): Array of coefficients describing the Kohn-Sham orbitals
+                                 :math:`\psi_i(p)` in the plane wave basis,
                                  shape (#bands_i, #grid_size, #grid_size, #grid_size)
-        c_jp_array (np.ndarray | None): Same as c_ip_array but the coefficients describing \psi_j(p), shape (#bands_j, #grid_size, #grid_size, #grid_size)
-                                        instead of \psi_i(p) in \rho_ij(p)=\psi*_i(p) * \psi_j(p) (* is convolution).
-                                        If None, this is set to c_ip_array
+        c_jp_array (np.ndarray | None): Same as c_ip_array but describing :math:`\psi_j(p)`,
+                                        shape (#bands_j, #grid_size, #grid_size, #grid_size),
+                                        i.e. the j-orbital in
+                                        :math:`\rho_{ij}(p) = \psi^*_i(p) \star \psi_j(p)`.
+                                        If None, this is set to c_ip_array.
 
     Returns:
         np.ndarray: Pair density in reciprocal space, shape (#bands_i, #bands_j, #grid_size, #grid_size, #grid_size)
@@ -167,19 +171,19 @@ def pair_density_conj_sum(
     c_kp_array: np.ndarray,
     use_gpu: bool = True,
 ) -> np.ndarray:
-    r"""Calculates \sum_k \rho*_ki(p) \rho_kj(p),
-    where j and k go over the same orbitals defined by argument c_jp_array
-    where \rho_ij(p) is calculated with dopyqo.eri_pair_densities.pair_density function.
+    r"""Calculates :math:`\sum_k \rho^*_{ki}(p)\,\rho_{kj}(p)`,
+    where i, j go over the orbitals defined by c_ip_array and k goes over c_kp_array.
+    :math:`\rho_{ij}(p)` is computed with :func:`dopyqo.eri_pair_densities.pair_density`.
 
     Args:
-        c_ip_array (np.ndarray): Array of coefficients describing the Kohn-Sham orbitals \psi_i(p) and \psi_j(p) (\psi_i(p) = \psi_j(p))
-                                 in the plane wave basis,
+        c_ip_array (np.ndarray): Coefficients for :math:`\psi_i(p)` and :math:`\psi_j(p)`
+                                 (:math:`\psi_i = \psi_j`) in the plane wave basis,
                                  shape (#bands_i, #grid_size, #grid_size, #grid_size)
-        c_kp_array (np.ndarray | None): Same as c_ip_array but the coefficients describing \psi_k(p),
-                                        shape (#bands_k, #grid_size, #grid_size, #grid_size)
+        c_kp_array (np.ndarray): Coefficients describing :math:`\psi_k(p)`,
+                                 shape (#bands_k, #grid_size, #grid_size, #grid_size)
 
     Returns:
-        np.ndarray: Pair density in reciprocal space, shape (#bands_j, #bands_j, #grid_size, #grid_size, #grid_size)
+        np.ndarray: Summed pair density in reciprocal space, shape (#bands_i, #bands_i, #grid_size, #grid_size, #grid_size)
     """
     using_cupy = False
 
@@ -257,20 +261,27 @@ def pair_density_sums(
 ) -> tuple[np.ndarray, np.ndarray]:
     r"""Calculates
 
-    sum1 = \sum_i \rho_ii(p)
-    and
-    sum2 = \sum_ij \rho*_ji(p) \rho_ji(p) = \sum_ij |\rho_ji(p)|^2,
+    .. math::
 
-    where i and j go over the same orbitals defined by argument c_ip_array
-    where \rho_ij(p) is calculated with dopyqo.eri_pair_densities.pair_density function.
+        \text{sum1} = \sum_i \rho_{ii}(p)
+
+    and
+
+    .. math::
+
+        \text{sum2} = \sum_{ij} \rho^*_{ji}(p)\,\rho_{ji}(p)
+                    = \sum_{ij} \lvert\rho_{ji}(p)\rvert^2
+
+    where i and j go over the same orbitals defined by c_ip_array.
+    :math:`\rho_{ij}(p)` is computed with :func:`dopyqo.eri_pair_densities.pair_density`.
 
     Args:
-        c_ip_array (np.ndarray): Array of coefficients describing the Kohn-Sham orbitals \psi_i(p) and \psi_j(p) (\psi_i(p) = \psi_j(p))
-                                 in the plane wave basis,
+        c_ip_array (np.ndarray): Coefficients for :math:`\psi_i(p)` and :math:`\psi_j(p)`
+                                 (:math:`\psi_i = \psi_j`) in the plane wave basis,
                                  shape (#bands_i, #grid_size, #grid_size, #grid_size)
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Tuple (sum1, sum2) of summed pair densities in reciprocal space, shape (#grid_size, #grid_size, #grid_size)
+        tuple[np.ndarray, np.ndarray]: Tuple (sum1, sum2) of summed pair densities in reciprocal space, each of shape (#grid_size, #grid_size, #grid_size)
     """
     assert len(calc_sums) == 2, f"calc_sums must have length 2 but has lenght {len(calc_sums)}!"
     assert calc_sums[0] == True or calc_sums[1] == True, "Set at least one value in calc_sums to True, both are set to False!"
@@ -341,22 +352,20 @@ def pair_density_real_space(
     c_ip_array: np.ndarray,
     c_jp_array: np.ndarray | None = None,
 ) -> np.ndarray:
-    r"""Calculate pair density in reciprocal space via Fourier transforms
-    Calculates \psi*_i(r) * \psi_j(r) (* is standard multiplication)
+    r"""Calculate pair density in real space via Fourier transforms.
+    Calculates :math:`\psi^*_i(r) \cdot \psi_j(r)` (pointwise product in real space).
 
-    The argument c_ip_array is \psi_i(p) for a p-grid in reciprocal space.
-    The inverse Fourier transform of \psi_i(p) (or c_ip_array) is \psi_i(r) in real space.
-    To calculate \psi*_i(r) * \psi_j(r) (* is standard multiplication) we inverse Fourier
-    transform both \psi_i(p) and \psi_j(p) resulting in \psi_i(r) and \psi_j(r)
-    and then perform the standard multiplication \psi*_i(r) * \psi_j(r) (* is standard multiplication).
-    We return the calculated real space pair density.
+    The argument c_ip_array is :math:`\psi_i(p)` for a p-grid in reciprocal space.
+    The inverse Fourier transform of :math:`\psi_i(p)` (or c_ip_array) is :math:`\psi_i(r)` in
+    real space. To calculate :math:`\psi^*_i(r) \cdot \psi_j(r)` we inverse Fourier transform
+    both :math:`\psi_i(p)` and :math:`\psi_j(p)` resulting in :math:`\psi_i(r)` and
+    :math:`\psi_j(r)`, and then perform the pointwise product. We return the result.
 
     Args:
-        c_ip_array (np.ndarray): Array of coefficients describing the Kohn-Sham orbitals \psi_i(p) in the plane wave basis,
+        c_ip_array (np.ndarray): Coefficients describing :math:`\psi_i(p)` in the plane wave basis,
                                  shape (#bands, #grid_size, #grid_size, #grid_size)
-        c_jp_array (np.ndarray | None): Same as c_ip_array but the coefficients describing \psi_j(p)
-                                        instead of \psi_i(p) in \rho_ij(p)=\psi*_i(p) * \psi_j(p) (* is convolution).
-                                        If None, this is set to c_ip_array
+        c_jp_array (np.ndarray | None): Same as c_ip_array but describing :math:`\psi_j(p)`.
+                                        If None, this is set to c_ip_array.
 
     Returns:
         np.ndarray: Pair density in real space
@@ -414,22 +423,22 @@ def eri(
         h_{ijkl}=4\pi \sum_{p \neq 0} \rho_{il}(-p)\rho_{jk}(p)/|p|²
                 =4\pi \sum_{p \neq 0} \rho*_{li}(p)\rho_{jk}(p)/|p|²
 
-    where ijkl are indexing spatial orbitals
-    Since the momenta p and reciprocal space wavefunctions \psi_i(p) (given as c_ip)
-    are given as a list, we need to transfer \psi_i(p) to a 3D grid.
-    Then \psi_i(p) is represented on a 3D reciprocal space grid.
-    We calculate 1/|p|^2 on all grid points resulting in an infinite value at the
-    center of the grid. This infinite value is set to zero, therefore,
-    technically we later perform a sum over all momenta p except the zero momenta.
-    Note that there are different techniques handling with this singularity
-    by e.g. using a resolution-of-identity.
+    where :math:`i,j,k,l` index spatial orbitals.
+    Since the momenta :math:`p` and reciprocal-space wavefunctions :math:`\psi_i(p)` (given as ``c_ip``)
+    are given as a list, we need to transfer :math:`\psi_i(p)` to a 3D grid.
+    Then :math:`\psi_i(p)` is represented on a 3D reciprocal-space grid.
+    We calculate :math:`1/|\mathbf{p}|^2` on all grid points, resulting in an infinite value at the
+    center of the grid. This infinite value is set to zero; therefore,
+    technically we later perform a sum over all momenta :math:`p` except the zero momentum.
+    Note that there are different techniques for handling this singularity,
+    e.g. using a resolution-of-identity.
 
-    Note that h_{ijkl} does not explicitly depend on the k-point but only implicitly
-    depends on the k-point via the plane wave coefficients c_ip.
-    Any explicit dependecy is cancelled out since the k-point contributes a phase
-    to each KS-orbital (e^(ikr)) but since the pair densities are a product of two
-    orbitals, where one in complex conjugated and the other is not, the phases
-    of the two orbitals cancel out ([e^(ikr)]* e^(ikr) = e^(-ikr) e^(ikr) = 1)
+    Note that :math:`h_{ijkl}` does not explicitly depend on the k-point but only implicitly
+    depends on the k-point via the plane-wave coefficients ``c_ip``.
+    Any explicit dependency is cancelled out since the k-point contributes a phase
+    to each KS-orbital :math:`e^{i\mathbf{k}\cdot\mathbf{r}}`, but since the pair densities are a product of two
+    orbitals where one is complex conjugated and the other is not, the phases
+    cancel: :math:`(e^{i\mathbf{k}\cdot\mathbf{r}})^* e^{i\mathbf{k}\cdot\mathbf{r}} = e^{-i\mathbf{k}\cdot\mathbf{r}} e^{i\mathbf{k}\cdot\mathbf{r}} = 1`.
 
     Args:
         c_ip (np.ndarray): Array of coefficients describing the Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
@@ -530,7 +539,7 @@ def get_frozen_core_energy_eri(
     one_over_p_norm_squared_array: np.ndarray | None = None,
     use_gpu: bool = True,
 ) -> float:
-    r"""Calculate frozen core energy ERI part \sum_{ij}^{\mathrm{frozen}} (2h_{ijji} - h_{ijij})
+    r"""Calculate frozen core energy ERI part :math:`\sum_{ij}^{\text{frozen}} (2h_{ijji} - h_{ijij})`
 
     Args:
         p (np.ndarray): Array of momentum vectors, shape (#waves, 3)
@@ -541,10 +550,10 @@ def get_frozen_core_energy_eri(
         atom_positions (np.ndarray): 1D array of positions of each atom
         atomic_numbers (np.ndarray): 1D array of atomic number of each atom
         occupations_core (np.ndarray): Array of occupations of the core orbitals.
-        rho_sums (tuple[np.ndarray, np.ndarray] | None): Tuple of sums
-            sum1 = |\sum_i \rho_ii(p)|^2
+        rho_sums (tuple[np.ndarray, np.ndarray] | None): Tuple of precomputed sums
+            :math:`\bigl|\sum_i \rho_{ii}(p)\bigr|^2`
             and
-            sum2 = \sum_ij \rho*_ji(p) \rho_ji(p) = \sum_ij |\rho_ji(p)|^2,
+            :math:`\sum_{ij} \rho^*_{ji}(p)\,\rho_{ji}(p) = \sum_{ij} |\rho_{ji}(p)|^2`,
             each of shape (#nwaves_fft)
             where #nwaves_fft is the number of points in momentum space that are used in the Fourier transforms.
             Is calculated from c_ip_core if None. If not None one_over_p_norm_squared_array has to be given, too.
@@ -650,20 +659,23 @@ def get_frozen_core_energy(
     use_gpu: bool = True,
 ) -> float:
     r"""Calculate frozen core energy ERI part
-    2\sum_i^{\mathrm{frozen}} h_ii + \sum_{ij}^{\mathrm{frozen}} (2h_{iijj} - h_{ijji})
+
+    .. math::
+
+        2\sum_i^{\text{frozen}} h_{ii} + \sum_{ij}^{\text{frozen}} (2h_{iijj} - h_{ijji})
 
     Args:
         p (np.ndarray): Array of momentum vectors, shape (#waves, 3)
-        c_ip_core (np.ndarray): Array of coefficients describing the active Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
+        c_ip_core (np.ndarray): Array of coefficients describing the core Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
         b (np.ndarray): Array of reciprocal lattice vectors, shape (3, 3)
         mill (np.ndarray): Array of Miller indices, shape (#waves, 3)
-        cell_volume (float): Cell volume of the computationen real space cell.
+        cell_volume (float): Cell volume of the computational real space cell.
         atom_positions (np.ndarray): 1D array of positions of each atom
         atomic_numbers (np.ndarray): 1D array of atomic number of each atom
         occupations_core (np.ndarray): Array of occupations of the core orbitals.
 
     Returns:
-        np.ndarray: ERIs in reciprocal space
+        float: Frozen core energy
     """
     eri_energy = get_frozen_core_energy_eri(c_ip_core, b, mill, cell_volume, fft_grid, use_gpu=use_gpu)
 
@@ -696,20 +708,23 @@ def get_frozen_core_energy_pp(
     use_gpu: bool = True,
 ) -> float:
     r"""Calculate frozen core energy ERI part
-    2\sum_i^{\mathrm{frozen}} h_ii + \sum_{ij}^{\mathrm{frozen}} (2h_{iijj} - h_{ijji})
+
+    .. math::
+
+        2\sum_i^{\text{frozen}} h_{ii} + \sum_{ij}^{\text{frozen}} (2h_{iijj} - h_{ijji})
 
     Args:
         p (np.ndarray): Array of momentum vectors, shape (#waves, 3)
-        c_ip_core (np.ndarray): Array of coefficients describing the active Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
+        c_ip_core (np.ndarray): Array of coefficients describing the core Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
         b (np.ndarray): Array of reciprocal lattice vectors, shape (3, 3)
         mill (np.ndarray): Array of Miller indices, shape (#waves, 3)
-        cell_volume (float): Cell volume of the computationen real space cell.
+        cell_volume (float): Cell volume of the computational real space cell.
         atom_positions (np.ndarray): 1D array of positions of each atom
         atomic_numbers (np.ndarray): 1D array of atomic number of each atom
         occupations_core (np.ndarray): Array of occupations of the core orbitals.
 
     Returns:
-        np.ndarray: ERIs in reciprocal space
+        float: Frozen core energy
     """
     eri_energy = get_frozen_core_energy_eri(c_ip_core, b, mill, cell_volume, fft_grid, use_gpu=use_gpu)
 
@@ -740,19 +755,22 @@ def get_frozen_core_energy_given_pp(
     use_gpu: bool = True,
 ) -> float:
     r"""Calculate frozen core energy ERI part
-    2\sum_i^{\mathrm{frozen}} h_ii + \sum_{ij}^{\mathrm{frozen}} (2h_{iijj} - h_{ijji})
+
+    .. math::
+
+        2\sum_i^{\text{frozen}} h_{ii} + \sum_{ij}^{\text{frozen}} (2h_{iijj} - h_{ijji})
 
     Args:
         p (np.ndarray): Array of momentum vectors, shape (#waves, 3)
-        c_ip_core (np.ndarray): Array of coefficients describing the active Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
+        c_ip_core (np.ndarray): Array of coefficients describing the core Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
         b (np.ndarray): Array of reciprocal lattice vectors, shape (3, 3)
         mill (np.ndarray): Array of Miller indices, shape (#waves, 3)
-        cell_volume (float): Cell volume of the computationen real space cell.
+        cell_volume (float): Cell volume of the computational real space cell.
         pp_core (np.ndarray): Pseudopotential matrix for the core orbitals
         occupations_core (np.ndarray): Array of occupations of the core orbitals.
 
     Returns:
-        np.ndarray: ERIs in reciprocal space
+        float: Frozen core energy
     """
     eri_energy = get_frozen_core_energy_eri(c_ip_core, b, mill, cell_volume, fft_grid, use_gpu=use_gpu)
 
@@ -778,11 +796,20 @@ def get_frozen_core_pot(
     cell_volume: float | None = None,
     use_gpu: bool = True,
 ) -> np.ndarray | tuple[np.ndarray, float]:
-    r"""Calculate frozen core effective single particle potential V_{tu}=\sum_{i}^{\mathrm{frozen}} (2h_{tuii} - h_{tiiu}).
-    The notation is taken from Saad Yalouz et al 2021 Quantum Sci. Technol. 6 024004, Appendix B. Frozen core Hamiltonian,
-    i.e. t,u are active orbital indices and i are core orbital indices and chemists index order is used.
+    r"""Calculate frozen core effective single-particle potential
 
-    Using physicists' index order this becomes V_{tu}=\sum_{i}^{\mathrm{frozen}} (2h_{tiiu} - h_{tiui}).
+    .. math::
+
+        V_{tu} = \sum_{i}^{\text{frozen}} (2h_{tuii} - h_{tiiu})
+
+    (chemists' index order, notation from Saad Yalouz et al. 2021 Quantum Sci. Technol. 6 024004, Appendix B).
+    Here t, u are active orbital indices and i are core orbital indices.
+
+    In physicists' index order this becomes
+
+    .. math::
+
+        V_{tu} = \sum_{i}^{\text{frozen}} (2h_{tiiu} - h_{tiui})
 
     Args:
         c_ip_core (np.ndarray): Array of coefficients describing the core Kohn-Sham orbitals in the plane wave basis, shape (#bands, #waves)
