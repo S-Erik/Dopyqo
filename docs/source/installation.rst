@@ -52,15 +52,5 @@ Bader charge analysis
 ---------------------
 
 To calculate Bader charges, install the external
-`Bader charge analysis code <https://theory.cm.utexas.edu/henkelman/code/bader/>`_
-and make sure it is available on your ``PATH``.
+`Bader charge analysis code <https://theory.cm.utexas.edu/henkelman/code/bader/>`_.
 
-VQE thread usage
-----------------
-
-On Linux, set the ``OMP_NUM_THREADS`` environment variable to limit CPU usage
-during VQE calculations:
-
-.. code-block:: bash
-
-   export OMP_NUM_THREADS=4

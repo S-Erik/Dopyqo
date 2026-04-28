@@ -3,12 +3,7 @@
 Citation
 ========
 
-If you use Dopyqo in your research, please cite:
-
-   Erik Schultheis, Alexander Rehn, Gabriel Breuil (2025).
-   *Many-body post-processing of density functional calculations using the
-   variational quantum eigensolver for Bader charge analysis.*
-   arXiv:2510.12887. https://arxiv.org/abs/2510.12887
+If you use Dopyqo in your research, please cite our `paper <https://arxiv.org/abs/2510.12887>`_.
 
 BibTeX:
 

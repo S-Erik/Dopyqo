@@ -37,16 +37,20 @@ The returned ``energy_dict`` contains the computed energies, e.g.
 CLI (TOML input)
 ----------------
 
-Dopyqo can also be driven from the command line using a TOML input file:
+Dopyqo can also be launched from the command line using a TOML input file:
 
 .. code-block:: bash
 
    dopyqo -i your_input_file.toml
 
-The TOML interface currently covers a subset of the Python API's functionality.
-See the ``INPUT.md`` in the `Dopyqo repository <https://github.com/dlr-wf/Dopyqo>`_
-for the full input file specification, and the ``examples/dopyqo.toml`` file for
-a working example.
+The TOML interface currently covers only a subset of the Python API's functionality.
+See the |dopyqo.input_md|_ on GitHub for the full input file specification, and the |dopyqo.toml|_ file for a working example.
+
+.. |dopyqo.input_md| replace:: ``INPUT.md``
+.. _dopyqo.input_md: https://github.com/dlr-wf/Dopyqo/blob/main/INPUT.md
+
+.. |dopyqo.toml| replace:: ``examples/dopyqo.toml``
+.. _dopyqo.toml: https://github.com/dlr-wf/Dopyqo/blob/main/examples/dopyqo.toml
 
 K-point calculations
 --------------------
@@ -63,7 +67,7 @@ every k-point:
    )
 
 General k-point calculations currently only work with Qiskit or PySCF solvers.
-Gamma-only calculations also work with TenCirChem.
+:math:`\Gamma`-only calculations also work with TenCirChem.
 
 Modifying a configuration
 --------------------------
